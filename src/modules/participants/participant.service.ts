@@ -1,9 +1,4 @@
-import {
-    and,
-    eq,
-    gt,
-    isNull,
-} from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 import {
     createGuestToken,
@@ -69,7 +64,8 @@ export async function joinRoomAsGuest(
     }
 
     if (
-        room.status !== "active"
+        room.status !==
+        "active"
     ) {
         return null;
     }
@@ -112,5 +108,91 @@ export async function joinRoomAsGuest(
     return {
         participant,
         guestToken,
+    };
+}
+
+/**
+ * Authenticate an existing guest participant
+ * for a realtime WebSocket connection.
+ */
+export async function authenticateGuestParticipant(
+    roomId: string,
+    participantId: string,
+    guestToken: string,
+) {
+    const guestTokenHash =
+        hashGuestToken(
+            guestToken,
+        );
+
+    const [participant] =
+        await db
+            .select({
+                id:
+                    participants.id,
+
+                roomId:
+                    participants.roomId,
+
+                displayName:
+                    participants.displayName,
+
+                joinedAt:
+                    participants.joinedAt,
+
+                roomStatus:
+                    rooms.status,
+            })
+            .from(participants)
+            .innerJoin(
+                rooms,
+                eq(
+                    rooms.id,
+                    participants.roomId,
+                ),
+            )
+            .where(
+                and(
+                    eq(
+                        participants.id,
+                        participantId,
+                    ),
+
+                    eq(
+                        participants.roomId,
+                        roomId,
+                    ),
+
+                    eq(
+                        participants.guestTokenHash,
+                        guestTokenHash,
+                    ),
+                ),
+            )
+            .limit(1);
+
+    if (!participant) {
+        return null;
+    }
+
+    if (
+        participant.roomStatus !==
+        "active"
+    ) {
+        return null;
+    }
+
+    return {
+        roomId:
+            participant.roomId,
+
+        participantId:
+            participant.id,
+
+        displayName:
+            participant.displayName,
+
+        role:
+            "guest" as const,
     };
 }

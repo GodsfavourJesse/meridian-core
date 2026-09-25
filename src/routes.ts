@@ -5,12 +5,14 @@ import { authRoutes } from "./modules/auth/routes";
 import { verificationRoutes } from "./modules/auth/verification-routes";
 import { meRoutes } from "./modules/me/me.routes";
 import { roomRoutes } from "./modules/rooms/room.routes";
+import { registerRealtime } from "./realtime/websocket";
 
 export async function registerRoutes(app: FastifyInstance) {
     await app.register(authRoutes, { prefix: "/auth" });
     await app.register(verificationRoutes, { prefix: "/auth" });
     await app.register(meRoutes);
     await app.register(roomRoutes);
+    await registerRealtime(app);
 
     app.get("/health", async (_request, reply) => {
         try {
