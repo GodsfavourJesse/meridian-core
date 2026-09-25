@@ -5,7 +5,6 @@ import { eq } from "drizzle-orm";
 import { createEmailVerificationTokenForUser } from "./email-verification";
 import { sendVerificationEmail } from "./email";
 import { hashPassword, verifyPassword } from "./password";
-import { requireAuth } from "./require-auth";
 import {
     clearSessionCookie,
     createSession,
@@ -18,7 +17,6 @@ import {
     normalizeEmail,
     signupSchema,
 } from "./validation";
-import { env } from "../../config/env";
 import { db } from "../../database";
 import { users } from "../../database/schema";
 import { buildVerificationUrl } from "../../helpers/email.helpers";
@@ -199,13 +197,4 @@ export async function authRoutes(app: FastifyInstance) {
             status: "ok",
         });
     });
-
-    app.get(
-        "/me",
-        { preHandler: requireAuth },
-        async (request) => ({
-            status: "ok" as const,
-            user: request.user,
-        }),
-    );
 }

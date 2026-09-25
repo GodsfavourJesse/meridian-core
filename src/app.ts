@@ -1,10 +1,13 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
+import websocket from "@fastify/websocket";
+import helmet from "@fastify/helmet";
 
 import { env } from "./config/env";
 import { closeDatabaseConnection } from "./database";
 import { registerRoutes } from "./routes";
+import { requireTrustedOrigin } from "./security/origin";
 
 export function buildApp() {
     const app = Fastify({
@@ -23,20 +26,43 @@ export function buildApp() {
                 : true,
     });
 
+    // ----------------------------------------
+    // Plugins
+    // ----------------------------------------
+
     app.register(cors, {
         origin: env.APP_URL,
         credentials: true,
+        methods: [
+            "GET",
+            "POST",
+            "PATCH",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+        ],
     });
 
     app.register(cookie);
 
-    app.register(async (instance) => {
-        instance.addHook("onClose", async () => {
-            await closeDatabaseConnection();
-        });
+    app.register(websocket);
 
-        await registerRoutes(instance);
+    app.register(helmet, {
+        contentSecurityPolicy: false,
     });
+
+    // ----------------------------------------
+    // Global hooks
+    // ----------------------------------------
+
+    app.addHook(
+        "preHandler",
+        requireTrustedOrigin,
+    );
+
+    // ----------------------------------------
+    // Global error handling
+    // ----------------------------------------
 
     app.setErrorHandler((error, request, reply) => {
         request.log.error(error);
@@ -60,6 +86,18 @@ export function buildApp() {
             status: "error",
             message,
         });
+    });
+
+    // ----------------------------------------
+    // Routes + lifecycle hooks
+    // ----------------------------------------
+
+    app.register(async (instance) => {
+        instance.addHook("onClose", async () => {
+            await closeDatabaseConnection();
+        });
+
+        await registerRoutes(instance);
     });
 
     return app;

@@ -7,7 +7,7 @@ import { db } from "../../database";
 import { sessions } from "../../database/schema";
 
 
-export const SESSION_COOKIE_NAME = "miyor_session";
+export const SESSION_COOKIE_NAME = "__Host-miyor_session";
 
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 

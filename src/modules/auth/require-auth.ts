@@ -7,31 +7,22 @@ import { eq } from "drizzle-orm";
 
 import { db } from "../../database";
 import { users } from "../../database/schema";
+
 import {
     clearSessionCookie,
     getSession,
     revokeAllUserSessions,
 } from "./sessions";
 
-declare module "fastify" {
-    interface FastifyRequest {
-        user: {
-            id: string;
-            name: string;
-            email: string;
-            emailVerifiedAt: Date | null;
-            status: string;
-            createdAt: Date;
-        } | null;
-    }
-}
+export const SESSION_COOKIE_NAME = "__Host-miyor_session";
 
 export async function requireAuth(
     request: FastifyRequest,
     reply: FastifyReply,
 ) {
-    const token =
-        request.cookies.miyor_session;
+    request.user = null;
+
+    const token = request.cookies.SESSION_COOKIE_NAME;
 
     if (!token) {
         return reply.status(401).send({
@@ -40,9 +31,12 @@ export async function requireAuth(
         });
     }
 
-    const session = await getSession(token);
+    const session =
+        await getSession(token);
 
     if (!session) {
+        clearSessionCookie(reply);
+
         return reply.status(401).send({
             status: "error",
             message: "Authentication required",
@@ -60,10 +54,21 @@ export async function requireAuth(
             createdAt: users.createdAt,
         })
         .from(users)
-        .where(eq(users.id, session.userId))
+        .where(
+            eq(
+                users.id,
+                session.userId,
+            ),
+        )
         .limit(1);
 
     if (!user) {
+        await revokeAllUserSessions(
+            session.userId,
+        );
+
+        clearSessionCookie(reply);
+
         return reply.status(401).send({
             status: "error",
             message: "Authentication required",
@@ -71,6 +76,8 @@ export async function requireAuth(
     }
 
     if (user.status !== "active") {
+        clearSessionCookie(reply);
+
         return reply.status(403).send({
             status: "error",
             message: "Account is not active",
@@ -78,35 +85,4 @@ export async function requireAuth(
     }
 
     request.user = user;
-}
-
-export async function requireVerifiedAuth(
-    request: FastifyRequest,
-    reply: FastifyReply,
-) {
-    await requireAuth(request, reply);
-
-    if (reply.sent) {
-        return;
-    }
-
-    const user = request.user;
-
-    if (!user) {
-        return reply.status(401).send({
-            status: "error",
-            message: "Authentication required",
-        });
-    }
-
-    if (!user.emailVerifiedAt) {
-        await revokeAllUserSessions(user.id);
-        clearSessionCookie(reply);
-
-        return reply.status(403).send({
-            status: "error",
-            code: "EMAIL_NOT_VERIFIED",
-            message: "Email verification required",
-        });
-    }
 }

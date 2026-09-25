@@ -176,6 +176,7 @@ export async function roomRoutes(
             const result =
                 await joinRoomAsGuest(
                     roomId,
+                    parsed.data.invitationToken,
                     parsed.data.displayName,
                 );
 
