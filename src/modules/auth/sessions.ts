@@ -15,7 +15,7 @@ export function setSessionCookie(reply: FastifyReply, token: string) {
     reply.setCookie(SESSION_COOKIE_NAME, token, {
         httpOnly: true,
         secure: env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
         maxAge: SESSION_MAX_AGE,
     });
@@ -25,7 +25,7 @@ export function clearSessionCookie(reply: FastifyReply) {
     reply.clearCookie(SESSION_COOKIE_NAME, {
         httpOnly: true,
         secure: env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
     });
 }
