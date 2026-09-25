@@ -12,9 +12,9 @@ import {
     clearSessionCookie,
     getSession,
     revokeAllUserSessions,
+    SESSION_COOKIE_NAME,
 } from "./sessions";
 
-export const SESSION_COOKIE_NAME = "__Host-miyor_session";
 
 export async function requireAuth(
     request: FastifyRequest,
@@ -22,7 +22,7 @@ export async function requireAuth(
 ) {
     request.user = null;
 
-    const token = request.cookies.SESSION_COOKIE_NAME;
+    const token = request.cookies[SESSION_COOKIE_NAME];
 
     if (!token) {
         return reply.status(401).send({
