@@ -2,18 +2,12 @@ import "./config/dns";
 
 import { buildApp } from "./app";
 import { env } from "./config/env";
-import { closeDatabaseConnection } from "./database";
-import { verifyEmailTransport } from "./modules/auth/email";
 import { redis } from "./config/redis";
 
 const app = buildApp();
 
 const start = async () => {
     try {
-        await verifyEmailTransport();
-
-        app.log.info("✓ SMTP connection verified");
-
         await app.listen({
             port: env.PORT,
             host: "0.0.0.0",
@@ -24,7 +18,6 @@ const start = async () => {
         );
     } catch (error) {
         app.log.error(error);
-        await closeDatabaseConnection();
         process.exit(1);
     }
 };
@@ -36,7 +29,6 @@ const shutdown = async (signal: string) => {
 
     try {
         await app.close();
-        await closeDatabaseConnection();
         await redis.quit();
         process.exit(0);
     } catch (error) {

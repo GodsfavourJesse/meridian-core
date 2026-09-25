@@ -22,20 +22,7 @@ const envSchema = z.object({
 
     SESSION_SECRET: z.string().min(32),
 
-    SMTP_HOST: z.string().min(1),
-
-    SMTP_PORT: z.coerce
-        .number()
-        .int()
-        .positive(),
-
-    SMTP_SECURE: z
-        .string()
-        .transform((value) => value.toLowerCase() === "true"),
-
-    SMTP_USER: z.string().email(),
-
-    SMTP_PASSWORD: z.string().min(1),
+    RESEND_API_KEY: z.string().min(1),
 
     EMAIL_FROM_NAME: z.string().min(1),
 
