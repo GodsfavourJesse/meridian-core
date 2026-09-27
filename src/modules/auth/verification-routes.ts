@@ -1,153 +1,106 @@
 import type { FastifyInstance } from "fastify";
 
 import {
-    eq,
-} from "drizzle-orm";
+    verifyEmailAddress,
+} from "./verification.service";
 
-import { db } from "../../database";
-import { users } from "../../database/schema";
-import {
-    createEmailVerificationTokenForUser,
-    verifyEmailToken,
-} from "./email-verification";
-import { sendVerificationEmail } from "./email";
-import {
-    normalizeEmail,
-    resendVerificationSchema,
-    verifyEmailSchema,
-} from "./validation";
-import { buildVerificationUrl } from "../../helpers/email.helpers";
-
-export async function verificationRoutes(
+export async function verificationRoute(
     app: FastifyInstance,
 ) {
-    app.post<{
-        Body: {
-            token?: string;
-        };
-    }>("/verify-email", async (request, reply) => {
-        const parsed = verifyEmailSchema.safeParse(request.body);
+    app.get(
+        "/verify-email",
+        async (
+            request,
+            reply,
+        ) => {
+            const { token } =
+                request.query as {
+                    token?: string;
+                };
 
-        if (!parsed.success) {
-            return reply.status(400).send({
-                status: "error",
-                message: "Invalid verification token",
-            });
-        }
-
-        const token = parsed.data.token;
-
-        const result =
-            await verifyEmailToken(token);
-
-        if (!result) {
-            return reply.status(400).send({
-                status: "error",
-                message:
-                    "This verification link is invalid or has expired",
-            });
-        }
-
-        return {
-            status: "ok",
-            message: "Email verified successfully",
-        };
-    });
-
-    app.post<{
-        Body: {
-            email?: string;
-        };
-    }>("/resend-verification", async (
-        request,
-        reply,
-    ) => {
-        const parsed = resendVerificationSchema.safeParse(request.body);
-
-        if (!parsed.success) {
-            return reply.status(400).send({
-                status: "error",
-                message: "Invalid email address",
-            });
-        }
-
-        const email = normalizeEmail(parsed.data.email);
-
-        const [user] = await db
-            .select({
-                id: users.id,
-                name: users.name,
-                email: users.email,
-                emailVerifiedAt:
-                    users.emailVerifiedAt,
-                status: users.status,
-            })
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1);
-
-        /*
-         * Do not reveal whether an email belongs
-         * to an account.
-         */
-        if (
-            !user ||
-            user.status !== "active" ||
-            user.emailVerifiedAt
-        ) {
-            return {
-                status: "ok",
-                message:
-                    "If the account requires verification, a new email will be sent",
-            };
-        }
-
-        try {
-            const {
-                token,
-            } =
-                await createEmailVerificationTokenForUser(
-                    user.id,
-                );
-
-            const verificationUrl = buildVerificationUrl(token);
-
-            await sendVerificationEmail(
-                user.email,
-                verificationUrl,
-            );
-        } catch (error) {
-            if (
-                error instanceof Error &&
-                error.message ===
-                    "VERIFICATION_RESEND_COOLDOWN"
-            ) {
-                return reply.status(429).send({
-                    status: "error",
-                    message:
-                        "Please wait before requesting another verification email",
-                });
+            if (!token) {
+                return reply
+                    .status(400)
+                    .send({
+                        error:
+                            "VERIFICATION_TOKEN_REQUIRED",
+                    });
             }
 
-            if (
-                error instanceof Error &&
-                error.message ===
-                    "VERIFICATION_DAILY_LIMIT"
-            ) {
-                return reply.status(429).send({
-                    status: "error",
+            try {
+                const user =
+                    await verifyEmailAddress(
+                        token,
+                    );
+
+                return reply.send({
                     message:
-                        "Verification email limit reached. Please try again later",
+                        "EMAIL_VERIFIED",
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        miyorNumber:
+                            user.miyorNumber,
+                    },
                 });
+            } catch (error) {
+                if (
+                    error instanceof Error
+                ) {
+                    switch (
+                        error.message
+                    ) {
+                        case "INVALID_VERIFICATION_TOKEN":
+                            return reply
+                                .status(400)
+                                .send({
+                                    error: error.message,
+                                });
+
+                        case "VERIFICATION_TOKEN_EXPIRED":
+                            return reply
+                                .status(400)
+                                .send({
+                                    error: error.message,
+                                });
+
+                        case "EMAIL_ALREADY_VERIFIED":
+                            return reply
+                                .status(409)
+                                .send({
+                                    error: error.message,
+                                });
+
+                        case "USER_NOT_FOUND":
+                            return reply
+                                .status(404)
+                                .send({
+                                    error: error.message,
+                                });
+
+                        default:
+                            app.log.error(
+                                error,
+                            );
+
+                            return reply
+                                .status(500)
+                                .send({
+                                    error:
+                                        "INTERNAL_SERVER_ERROR",
+                                });
+                    }
+                }
+
+                app.log.error(error);
+
+                return reply
+                    .status(500)
+                    .send({
+                        error:
+                            "INTERNAL_SERVER_ERROR",
+                    });
             }
-
-            throw error;
-        }
-
-        return {
-            status: "ok",
-            message:
-                "If the account requires verification, a new email will be sent",
-        };
-    });
+        },
+    );
 }

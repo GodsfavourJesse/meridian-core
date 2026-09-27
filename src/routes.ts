@@ -1,36 +1,81 @@
 import type { FastifyInstance } from "fastify";
 
-import { checkDatabaseConnection } from "./database";
-import { authRoutes } from "./modules/auth/routes";
-import { verificationRoutes } from "./modules/auth/verification-routes";
-import { meRoutes } from "./modules/me/me.routes";
-import { roomRoutes } from "./modules/rooms/room.routes";
-import { registerRealtime } from "./realtime/websocket";
+import {
+    checkDatabaseConnection,
+} from "./database";
 
-export async function registerRoutes(app: FastifyInstance) {
-    await app.register(authRoutes, { prefix: "/auth" });
-    await app.register(verificationRoutes, { prefix: "/auth" });
-    await app.register(meRoutes);
-    await app.register(roomRoutes);
-    await registerRealtime(app);
+import {
+    authRoutes,
+} from "./modules/auth/auth.routes";
+import { verificationRoute } from "./modules/auth/verification-routes";
+import { usersRoutes } from "./modules/users/users.routes";
+import { contactsRoutes } from "./modules/contacts/contacts.routes";
+import { conversationRoutes } from "./modules/conversations/conversations.routes";
 
-    app.get("/health", async (_request, reply) => {
-        try {
-            await checkDatabaseConnection();
+export async function registerRoutes(
+    app: FastifyInstance,
+) {
+    // Authentication
+    await app.register(
+        authRoutes,
+        {
+            prefix: "/auth",
+        },
+    );
 
-            return {
-                status: "ok",
-                service: "miyor-api",
-                database: "connected",
-            };
-        } catch (error) {
-            app.log.error(error);
+    // Email verification
+    await app.register(
+        verificationRoute,
+        {
+            prefix: "/auth",
+        },
+    );
 
-            return reply.status(503).send({
-                status: "error",
-                service: "miyor-api",
-                database: "disconnected",
-            });
-        }
+    // Users
+    await app.register(usersRoutes, {
+        prefix: "/users",
     });
+
+    // Contatcs
+    await app.register(contactsRoutes, {
+        prefix: "/contacts",
+    });
+
+    // Conversations
+    app.register(conversationRoutes, {
+        prefix: "/conversations",
+    });
+
+    // Health
+    app.get(
+        "/health",
+        async (
+            _request,
+            reply,
+        ) => {
+            try {
+                await checkDatabaseConnection();
+
+                return {
+                    status: "ok",
+                    service: "miyor-api",
+                    database:
+                        "connected",
+                };
+            } catch (error) {
+                app.log.error(error);
+
+                return reply
+                    .status(503)
+                    .send({
+                        status:
+                            "error",
+                        service:
+                            "miyor-api",
+                        database:
+                            "disconnected",
+                    });
+            }
+        },
+    );
 }

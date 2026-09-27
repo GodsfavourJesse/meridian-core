@@ -1,38 +1,90 @@
 import {
+    index,
     pgTable,
+    timestamp,
     uuid,
     varchar,
-    timestamp,
 } from "drizzle-orm/pg-core";
 
-export const users = pgTable("users", {
-    id: uuid("id").defaultRandom().primaryKey(),
+export const users = pgTable(
+    "users",
+    {
+        id: uuid("id")
+            .defaultRandom()
+            .primaryKey(),
 
-    name: varchar("name", {
-        length: 100,
-    }).notNull(),
+        displayName: varchar("display_name", {
+            length: 100,
+        }).notNull(),
 
-    email: varchar("email", {
-        length: 255,
-    }).notNull().unique(),
+        username: varchar("username", {
+            length: 30,
+        })
+            .notNull()
+            .unique(),
 
-    passwordHash: varchar("password_hash", {
-        length: 255,
-    }).notNull(),
+        miyorNumber: varchar("miyor_number", {
+            length: 20,
+        }).unique(),
 
-    emailVerifiedAt: timestamp("email_verified_at", {
-        withTimezone: true,
-    }),
+        email: varchar("email", {
+            length: 255,
+        })
+            .notNull()
+            .unique(),
 
-    status: varchar("status", {
-        length: 20,
-    }).notNull().default("active"),
+        passwordHash: varchar("password_hash", {
+            length: 255,
+        }).notNull(),
 
-    createdAt: timestamp("created_at", {
-        withTimezone: true,
-    }).defaultNow().notNull(),
+        profilePictureUrl: varchar(
+            "profile_picture_url",
+            {
+                length: 500,
+            },
+        ),
 
-    updatedAt: timestamp("updated_at", {
-        withTimezone: true,
-    }).defaultNow().notNull(),
-});
+        bio: varchar("bio", {
+            length: 500,
+        }),
+
+        emailVerifiedAt: timestamp(
+            "email_verified_at",
+            {
+                withTimezone: true,
+            },
+        ),
+
+        status: varchar("status", {
+            length: 30,
+        })
+            .notNull()
+            .default("pending_verification"),
+
+        createdAt: timestamp("created_at", {
+            withTimezone: true,
+        })
+            .defaultNow()
+            .notNull(),
+
+        updatedAt: timestamp("updated_at", {
+            withTimezone: true,
+        })
+            .defaultNow()
+            .notNull(),
+    },
+
+    (table) => [
+        index("users_display_name_idx").on(
+            table.displayName,
+        ),
+
+        index("users_email_verified_at_idx").on(
+            table.emailVerifiedAt,
+        ),
+
+        index("users_status_idx").on(
+            table.status,
+        ),
+    ],
+);

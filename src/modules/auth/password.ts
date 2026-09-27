@@ -1,6 +1,8 @@
 import argon2 from "argon2";
 
-export async function hashPassword(password: string) {
+export async function hashPassword(
+    password: string
+) {
     return argon2.hash(password, {
         type: argon2.argon2id,
     });
@@ -10,5 +12,8 @@ export async function verifyPassword(
     passwordHash: string,
     password: string,
 ) {
-    return argon2.verify(passwordHash, password);
+    return argon2.verify(
+        passwordHash, 
+        password
+    );
 }

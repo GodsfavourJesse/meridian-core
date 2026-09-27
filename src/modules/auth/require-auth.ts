@@ -3,86 +3,73 @@ import type {
     FastifyRequest,
 } from "fastify";
 
-import { eq } from "drizzle-orm";
-
-import { db } from "../../database";
-import { users } from "../../database/schema";
-
 import {
-    clearSessionCookie,
-    getSession,
-    revokeAllUserSessions,
+    findActiveSession,
     SESSION_COOKIE_NAME,
 } from "./sessions";
 
+import {
+    findUserById,
+} from "./auth.repository";
+
+import type {
+    AuthenticatedUser,
+} from "./auth.types";
+
+export type AuthenticatedRequest =
+    FastifyRequest & {
+        user: AuthenticatedUser;
+    };
 
 export async function requireAuth(
     request: FastifyRequest,
     reply: FastifyReply,
-) {
-    request.user = null;
-
-    const token = request.cookies[SESSION_COOKIE_NAME];
+): Promise<void> {
+    const token =
+        request.cookies[SESSION_COOKIE_NAME];
 
     if (!token) {
-        return reply.status(401).send({
+        reply.status(401).send({
             status: "error",
-            message: "Authentication required",
+            code: "UNAUTHENTICATED",
+            message:
+                "Authentication required",
         });
+
+        return;
     }
 
     const session =
-        await getSession(token);
+        await findActiveSession(token);
 
     if (!session) {
-        clearSessionCookie(reply);
-
-        return reply.status(401).send({
+        reply.status(401).send({
             status: "error",
-            message: "Authentication required",
+            code: "UNAUTHENTICATED",
+            message:
+                "Session expired or invalid",
         });
+
+        return;
     }
 
-    const [user] = await db
-        .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            emailVerifiedAt:
-                users.emailVerifiedAt,
-            status: users.status,
-            createdAt: users.createdAt,
-        })
-        .from(users)
-        .where(
-            eq(
-                users.id,
-                session.userId,
-            ),
-        )
-        .limit(1);
-
-    if (!user) {
-        await revokeAllUserSessions(
+    const user =
+        await findUserById(
             session.userId,
         );
 
-        clearSessionCookie(reply);
-
-        return reply.status(401).send({
+    if (!user) {
+        reply.status(401).send({
             status: "error",
-            message: "Authentication required",
+            code: "UNAUTHENTICATED",
+            message:
+                "User account not found",
         });
+
+        return;
     }
 
-    if (user.status !== "active") {
-        clearSessionCookie(reply);
-
-        return reply.status(403).send({
-            status: "error",
-            message: "Account is not active",
-        });
-    }
-
-    request.user = user;
+    (
+        request as AuthenticatedRequest
+    ).user = user;
 }

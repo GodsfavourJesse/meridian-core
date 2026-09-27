@@ -6,7 +6,7 @@ import { redis } from "./config/redis";
 
 const app = buildApp();
 
-const start = async () => {
+async function start() {
     try {
         await app.listen({
             port: env.PORT,
@@ -14,35 +14,56 @@ const start = async () => {
         });
 
         app.log.info(
-            `🚀 Miyor API running on ${env.API_URL}`,
+            `Miyor API running on ${env.API_URL}`,
         );
     } catch (error) {
         app.log.error(error);
+
         process.exit(1);
     }
-};
+}
 
-const shutdown = async (signal: string) => {
+async function shutdown(
+    signal: string,
+) {
     app.log.info(
         `${signal} received. Shutting down...`,
     );
 
     try {
+        /*
+         * app.close() triggers Fastify's
+         * onClose hooks, including the
+         * PostgreSQL connection cleanup.
+         */
         await app.close();
+
+        /*
+         * Redis is owned outside the Fastify
+         * database lifecycle, so close it here.
+         */
         await redis.quit();
+
         process.exit(0);
     } catch (error) {
         app.log.error(error);
+
         process.exit(1);
     }
-};
+}
 
-process.on("SIGINT", () => {
-    void shutdown("SIGINT");
-});
+process.on(
+    "SIGINT",
+    () => {
+        void shutdown("SIGINT");
+    },
+);
 
-process.on("SIGTERM", () => {
-    void shutdown("SIGTERM");
-});
+process.on(
+    "SIGTERM",
+    () => {
+        void shutdown("SIGTERM");
+    },
+);
 
 void start();

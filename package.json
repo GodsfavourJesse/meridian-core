@@ -11,7 +11,9 @@
         "typecheck": "tsc --noEmit",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
-        "db:check": "drizzle-kit check"
+        "db:check": "drizzle-kit check",
+        "email:test": "tsx src/scripts/test-resend.ts",
+        "dev:create-test-users": "tsx src/scripts/create-test-users.ts"
     },
     "keywords": [],
     "author": "",
@@ -27,6 +29,7 @@
         "drizzle-orm": "^0.45.2",
         "fastify": "^5.12.5",
         "ioredis": "^6.0.0",
+        "nodemailer": "^10.0.10",
         "pg": "^8.23.0",
         "redis": "^6.2.1",
         "resend": "^6.29.0",
@@ -35,6 +38,7 @@
     },
     "devDependencies": {
         "@types/node": "^26.6.2",
+        "@types/nodemailer": "^8.0.2",
         "@types/pg": "^8.23.1",
         "@types/ws": "^8.18.1",
         "drizzle-kit": "^0.31.10",
