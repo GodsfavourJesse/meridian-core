@@ -25,7 +25,11 @@ const SESSION_COOKIE_OPTIONS = {
     secure:
         env.NODE_ENV ===
         "production",
-    sameSite: "lax" as const,
+    sameSite:
+        env.NODE_ENV ===
+        "production"
+            ? ("none" as const)
+            : ("lax" as const),
     path: "/",
     maxAge:
         SESSION_MAX_AGE_SECONDS,
