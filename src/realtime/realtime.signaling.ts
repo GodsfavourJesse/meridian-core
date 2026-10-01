@@ -199,6 +199,16 @@ export async function handleWebRTCSignaling(
                 candidate: event.candidate,
             };
             break;
+
+        case "MEDIA_STATE":
+            serverEvent = {
+                type: "MEDIA_STATE",
+                callId: call.id,
+                fromUserId: connection.userId,
+                audioEnabled: event.audioEnabled,
+                videoEnabled: event.videoEnabled,
+            };
+            break;
     }
 
     /*

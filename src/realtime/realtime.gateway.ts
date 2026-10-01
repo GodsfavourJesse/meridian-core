@@ -112,6 +112,29 @@ function parseClientEvent(
                 };
             }
 
+            case "MEDIA_STATE": {
+                if (
+                    typeof event.callId !== "string" ||
+                    typeof event.audioEnabled !== "boolean" ||
+                    typeof event.videoEnabled !== "boolean"
+                ) {
+                    return null;
+                }
+
+                const callId = event.callId.trim();
+
+                if (!callId) {
+                    return null;
+                }
+
+                return {
+                    type: "MEDIA_STATE",
+                    callId,
+                    audioEnabled: event.audioEnabled,
+                    videoEnabled: event.videoEnabled,
+                };
+            }
+
             case "ICE_CANDIDATE": {
                 if (
                     typeof event.callId !== "string" ||
@@ -624,7 +647,8 @@ async function handleClientMessage(
     if (
         event.type === "OFFER" ||
         event.type === "ANSWER" ||
-        event.type === "ICE_CANDIDATE"
+        event.type === "ICE_CANDIDATE" ||
+        event.type === "MEDIA_STATE"
     ) {
         await handleWebRTCSignaling(
             connection,

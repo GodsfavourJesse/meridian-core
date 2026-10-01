@@ -40,6 +40,7 @@ export const REALTIME_EVENT = {
     OFFER: "OFFER",
     ANSWER: "ANSWER",
     ICE_CANDIDATE: "ICE_CANDIDATE",
+    MEDIA_STATE: "MEDIA_STATE",
 } as const;
 
 export type RealtimeEventType =
@@ -148,6 +149,13 @@ export type RealtimeWebRTCServerEvent =
               sdpMLineIndex: number | null;
               usernameFragment?: string | null;
           };
+      }
+    | {
+          type: "MEDIA_STATE";
+          callId: string;
+          fromUserId: string;
+          audioEnabled: boolean;
+          videoEnabled: boolean;
       };
 
 export type RealtimeServerEvent =
@@ -186,6 +194,12 @@ export type RealtimeWebRTCClientEvent =
               sdpMLineIndex: number | null;
               usernameFragment?: string | null;
           };
+      }
+    | {
+          type: "MEDIA_STATE";
+          callId: string;
+          audioEnabled: boolean;
+          videoEnabled: boolean;
       };
 
 export type RealtimeClientEvent =
