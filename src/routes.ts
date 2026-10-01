@@ -5,6 +5,10 @@ import {
 } from "./database";
 
 import {
+    checkRedisConnection,
+} from "./config/redis";
+
+import {
     authRoutes,
 } from "./modules/auth/auth.routes";
 import { verificationRoute } from "./modules/auth/verification-routes";
@@ -62,11 +66,14 @@ export async function registerRoutes(
         ) => {
             try {
                 await checkDatabaseConnection();
+                await checkRedisConnection();
 
                 return {
                     status: "ok",
                     service: "miyor-api",
                     database:
+                        "connected",
+                    redis:
                         "connected",
                 };
             } catch (error) {
@@ -81,6 +88,8 @@ export async function registerRoutes(
                             "miyor-api",
                         database:
                             "disconnected",
+                        redis:
+                            "unknown",
                     });
             }
         },

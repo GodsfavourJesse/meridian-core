@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import WebSocket from "ws";
 
@@ -406,6 +407,8 @@ async function handleConnection(
 
     const connection: RealtimeConnection =
         {
+            connectionId:
+                randomUUID(),
             socket,
             userId: user.id,
             conversationIds:
@@ -527,6 +530,10 @@ async function handleClientMessage(
      */
 
     if (event.type === "PING") {
+        realtimeConnections.touch(
+            connection,
+        );
+
         realtimeConnections.send(
             connection.socket,
             {

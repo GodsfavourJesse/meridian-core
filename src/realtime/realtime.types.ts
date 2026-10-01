@@ -209,6 +209,7 @@ export type RealtimeClientEvent =
  */
 
 export type RealtimeConnection = {
+    connectionId: string;
     socket: WebSocket;
     userId: string;
     conversationIds: Set<string>;

@@ -17,7 +17,7 @@ import {
     markConversationAsRead,
     sendMessage,
 } from "./conversations.service";
-import { broadcastConversationEvent } from "./conversations.websocket";
+import { broadcastConversationEvent } from "../../realtime/realtime.conversations";
 
 function handleConversationError(
     error: unknown,

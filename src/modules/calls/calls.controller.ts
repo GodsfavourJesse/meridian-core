@@ -3,6 +3,8 @@ import type {
     FastifyRequest,
 } from "fastify";
 
+import { env } from "../../config/env";
+
 import {
     createCallSchema,
     callIdParamsSchema,
@@ -16,6 +18,7 @@ import {
     createNewCall,
     declineCall,
     endCall,
+    failCall,
     getCall,
     getCallEvents,
     getUserCalls,
@@ -52,6 +55,48 @@ function handleCallError(
     }
 
     throw error;
+}
+
+
+
+export async function getIceConfigController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    assertAuthenticated(request);
+
+    const iceServers: Array<{
+        urls: string;
+        username?: string;
+        credential?: string;
+    }> = [
+        {
+            urls:
+                env.STUN_SERVER_URL,
+        },
+    ];
+
+    if (
+        env.TURN_SERVER_URL &&
+        env.TURN_USERNAME &&
+        env.TURN_CREDENTIAL
+    ) {
+        iceServers.push({
+            urls:
+                env.TURN_SERVER_URL,
+            username:
+                env.TURN_USERNAME,
+            credential:
+                env.TURN_CREDENTIAL,
+        });
+    }
+
+    return reply.send({
+        status: "success",
+        data: {
+            iceServers,
+        },
+    });
 }
 
 export async function createCallController(
@@ -286,6 +331,17 @@ export async function connectCallController(
         request,
         reply,
         markCallConnected,
+    );
+}
+
+export async function failCallController(
+    request: FastifyRequest,
+    reply: FastifyReply,
+) {
+    return transitionCall(
+        request,
+        reply,
+        failCall,
     );
 }
 

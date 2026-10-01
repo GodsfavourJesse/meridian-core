@@ -11,6 +11,7 @@ import {
     cancelCall as cancelCallDomain,
     declineCall as declineCallDomain,
     endCall as endCallDomain,
+    failCall as failCallDomain,
     markCallConnected as markCallConnectedDomain,
     startRingingCall as startRingingCallDomain,
 } from "./calls.domain";
@@ -309,6 +310,29 @@ export async function markCallConnected(
         "CALL_CONNECTED",
         userId,
     );
+
+    return result;
+}
+
+
+
+export async function failCall(
+    callId: string,
+    userId: string,
+) {
+    const result =
+        await failCallDomain(
+            callId,
+            userId,
+        );
+
+    if (result.state === "failed") {
+        await broadcastCallEvent(
+            callId,
+            "CALL_FAILED",
+            userId,
+        );
+    }
 
     return result;
 }

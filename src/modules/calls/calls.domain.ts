@@ -395,6 +395,83 @@ export async function markCallConnected(
     return updatedCall;
 }
 
+
+
+export async function failCall(
+    callId: string,
+    userId: string,
+) {
+    const call =
+        await findCallById(callId);
+
+    assertCallExists(call);
+
+    if (
+        TERMINAL_CALL_STATES.has(
+            call.state as CallState,
+        )
+    ) {
+        return call;
+    }
+
+    const participant =
+        await findCallParticipant(
+            callId,
+            userId,
+        );
+
+    if (!participant) {
+        throw new CallDomainError(
+            "CALL_PARTICIPANT_NOT_FOUND",
+            "You are not a participant in this call.",
+        );
+    }
+
+    const now = new Date();
+
+    const updatedParticipant =
+        await updateParticipantState(
+            callId,
+            userId,
+            CALL_PARTICIPANT_STATE.FAILED,
+            {
+                leftAt: now,
+            },
+        );
+
+    if (!updatedParticipant) {
+        throw new CallDomainError(
+            "CALL_PARTICIPANT_UPDATE_FAILED",
+            "Failed to mark the participant as failed.",
+        );
+    }
+
+    const updatedCall =
+        await updateCallState(
+            callId,
+            CALL_STATE.FAILED,
+            {
+                endedAt: now,
+            },
+        );
+
+    if (!updatedCall) {
+        throw new CallDomainError(
+            "CALL_UPDATE_FAILED",
+            "Failed to mark the call as failed.",
+        );
+    }
+
+    await createCallEvent({
+        callId,
+        actorUserId: userId,
+        type:
+            CALL_EVENT_TYPE.FAILED,
+    });
+
+    return updatedCall;
+}
+
 export async function endCall(
     callId: string,
     userId: string,

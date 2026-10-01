@@ -5,28 +5,106 @@ import type {
     RealtimeServerEvent,
 } from "./realtime.types";
 
+import {
+    markPresenceOffline,
+    markPresenceOnline,
+    refreshPresence,
+} from "./realtime.presence";
+
 class RealtimeConnectionManager {
     private readonly connections =
         new Set<RealtimeConnection>();
 
-    add(connection: RealtimeConnection) {
-        this.connections.add(connection);
-    }
+    add(
+        connection: RealtimeConnection,
+    ) {
+        this.connections.add(
+            connection,
+        );
 
-    remove(connection: RealtimeConnection) {
-        this.connections.delete(connection);
-    }
+        void markPresenceOnline(
+            connection.userId,
+            connection.connectionId,
+        ).catch((error) => {
+            console.error(
+                "[Realtime] Failed to mark user online:",
+                error,
+            );
+        });
 
-    removeBySocket(socket: WebSocket) {
-        for (const connection of this.connections) {
-            if (connection.socket === socket) {
-                this.connections.delete(
-                    connection,
-                );
-
-                return;
-            }
+        if (
+            this.getUserConnections(
+                connection.userId,
+            ).length === 1
+        ) {
+            this.broadcastPresence({
+                type: "PRESENCE_ONLINE",
+                userId:
+                    connection.userId,
+            });
         }
+    }
+
+    remove(
+        connection: RealtimeConnection,
+    ) {
+        const existed =
+            this.connections.delete(
+                connection,
+            );
+
+        if (!existed) {
+            return;
+        }
+
+        void markPresenceOffline(
+            connection.userId,
+            connection.connectionId,
+        )
+            .then((becameOffline) => {
+                if (becameOffline) {
+                    this.broadcastPresence({
+                        type:
+                            "PRESENCE_OFFLINE",
+                        userId:
+                            connection.userId,
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error(
+                    "[Realtime] Failed to mark user offline:",
+                    error,
+                );
+            });
+    }
+
+    removeBySocket(
+        socket: WebSocket,
+    ) {
+        const connection =
+            [...this.connections].find(
+                (item) =>
+                    item.socket === socket,
+            );
+
+        if (connection) {
+            this.remove(connection);
+        }
+    }
+
+    touch(
+        connection: RealtimeConnection,
+    ) {
+        void refreshPresence(
+            connection.userId,
+            connection.connectionId,
+        ).catch((error) => {
+            console.error(
+                "[Realtime] Failed to refresh presence:",
+                error,
+            );
+        });
     }
 
     get size() {
@@ -37,12 +115,20 @@ class RealtimeConnectionManager {
         return this.connections;
     }
 
-    getUserConnections(userId: string) {
-        const result: RealtimeConnection[] = [];
+    getUserConnections(
+        userId: string,
+    ) {
+        const result: RealtimeConnection[] =
+            [];
 
         for (const connection of this.connections) {
-            if (connection.userId === userId) {
-                result.push(connection);
+            if (
+                connection.userId ===
+                userId
+            ) {
+                result.push(
+                    connection,
+                );
             }
         }
 
@@ -92,15 +178,18 @@ class RealtimeConnectionManager {
         for (const connection of this.getUserConnections(
             userId,
         )) {
-            const delivered = this.send(
-                connection.socket,
-                event,
-            );
+            const delivered =
+                this.send(
+                    connection.socket,
+                    event,
+                );
 
             if (delivered) {
                 deliveredCount++;
             } else {
-                this.remove(connection);
+                this.remove(
+                    connection,
+                );
             }
         }
 
@@ -139,10 +228,11 @@ class RealtimeConnectionManager {
                 continue;
             }
 
-            const delivered = this.send(
-                connection.socket,
-                event,
-            );
+            const delivered =
+                this.send(
+                    connection.socket,
+                    event,
+                );
 
             if (delivered) {
                 deliveredCount++;
@@ -152,6 +242,25 @@ class RealtimeConnectionManager {
         }
 
         return deliveredCount;
+    }
+
+    private broadcastPresence(
+        event:
+            | {
+                  type: "PRESENCE_ONLINE";
+                  userId: string;
+              }
+            | {
+                  type: "PRESENCE_OFFLINE";
+                  userId: string;
+              },
+    ) {
+        for (const connection of this.connections) {
+            this.send(
+                connection.socket,
+                event,
+            );
+        }
     }
 }
 

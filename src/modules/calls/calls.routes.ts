@@ -13,8 +13,10 @@ import {
     createCallController,
     declineCallController,
     endCallController,
+    failCallController,
     getCallController,
     getCallEventsController,
+    getIceConfigController,
     listCallsController,
 } from "./calls.controller";
 
@@ -27,6 +29,14 @@ export async function callRoutes(
             preHandler: requireAuth,
         },
         createCallController,
+    );
+
+    fastify.get(
+        "/calls/ice-config",
+        {
+            preHandler: requireAuth,
+        },
+        getIceConfigController,
     );
 
     fastify.get(
@@ -83,6 +93,14 @@ export async function callRoutes(
             preHandler: requireAuth,
         },
         connectCallController,
+    );
+
+    fastify.post(
+        "/calls/:callId/fail",
+        {
+            preHandler: requireAuth,
+        },
+        failCallController,
     );
 
     fastify.post(
