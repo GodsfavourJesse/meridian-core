@@ -2,20 +2,20 @@ import "dotenv/config";
 
 import { eq } from "drizzle-orm";
 
-import { db } from "../database";
-import { users } from "../database/schema";
+import { db } from "../src/database";
+import { users } from "../src/database/schema";
 
 import {
     registerUser,
-} from "../modules/auth/auth.service";
+} from "../src/modules/auth/auth.service";
 
 import {
     generateMiyorNumber,
-} from "../modules/users/miyor-number";
+} from "../src/modules/users/miyor-number";
 
 import {
     USER_STATUS,
-} from "../modules/users/users.types";
+} from "../src/modules/users/users.types";
 
 const TEST_PASSWORD =
     "MiyorTest123!";

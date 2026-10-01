@@ -10,14 +10,10 @@ import {
 } from "./conversations.controller";
 
 import { requireAuth } from "../auth/require-auth";
-import { registerConversationWebSocket } from "./conversations.websocket";
-
 
 export async function conversationRoutes(
     app: FastifyInstance,
 ) {
-    registerConversationWebSocket(app);
-
     app.post(
         "/",
         {

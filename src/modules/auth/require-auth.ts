@@ -73,3 +73,13 @@ export async function requireAuth(
         request as AuthenticatedRequest
     ).user = user;
 }
+
+export function assertAuthenticated(
+    request: FastifyRequest,
+): asserts request is AuthenticatedRequest {
+    if (!request.user) {
+        throw new Error(
+            "Authenticated user is required.",
+        );
+    }
+}

@@ -19,8 +19,7 @@ export async function contactsRoutes(
     app.post(
         "/",
         {
-            preHandler:
-                requireAuth,
+            preHandler: requireAuth,
         },
         createContactController,
     );
@@ -28,8 +27,7 @@ export async function contactsRoutes(
     app.get(
         "/",
         {
-            preHandler:
-                requireAuth,
+            preHandler: requireAuth,
         },
         listContactsController,
     );
@@ -37,8 +35,7 @@ export async function contactsRoutes(
     app.patch(
         "/:id",
         {
-            preHandler:
-                requireAuth,
+            preHandler: requireAuth,
         },
         updateContactController,
     );
@@ -46,8 +43,7 @@ export async function contactsRoutes(
     app.delete(
         "/:id",
         {
-            preHandler:
-                requireAuth,
+            preHandler: requireAuth,
         },
         deleteContactController,
     );

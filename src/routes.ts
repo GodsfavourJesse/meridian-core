@@ -11,6 +11,8 @@ import { verificationRoute } from "./modules/auth/verification-routes";
 import { usersRoutes } from "./modules/users/users.routes";
 import { contactsRoutes } from "./modules/contacts/contacts.routes";
 import { conversationRoutes } from "./modules/conversations/conversations.routes";
+import { callRoutes } from "./modules/calls/calls.routes";
+import { registerRealtimeWebSocket } from "./realtime/realtime.gateway";
 
 export async function registerRoutes(
     app: FastifyInstance,
@@ -45,6 +47,11 @@ export async function registerRoutes(
     app.register(conversationRoutes, {
         prefix: "/conversations",
     });
+
+    // Calls
+    await app.register(callRoutes);
+
+    registerRealtimeWebSocket(app);
 
     // Health
     app.get(
