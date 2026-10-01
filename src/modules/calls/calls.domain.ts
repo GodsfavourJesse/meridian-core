@@ -70,7 +70,9 @@ export async function acceptCall(
 
     assertCallExists(call);
 
-    assertNotTerminal(call.state as CallState);
+    assertNotTerminal(
+        call.state as CallState,
+    );
 
     if (
         call.state !==
@@ -82,13 +84,26 @@ export async function acceptCall(
         );
     }
 
-    const participant =
-        await findCallParticipant(
+    const result =
+        await findCallWithParticipants(
             callId,
-            userId,
         );
 
-    if (!participant) {
+    if (!result) {
+        throw new CallDomainError(
+            "CALL_NOT_FOUND",
+            "Call not found.",
+        );
+    }
+
+    const callee =
+        result.participants.find(
+            (participant) =>
+                participant.userId ===
+                userId,
+        );
+
+    if (!callee) {
         throw new CallDomainError(
             "CALL_PARTICIPANT_NOT_FOUND",
             "You are not a participant in this call.",
@@ -96,8 +111,8 @@ export async function acceptCall(
     }
 
     if (
-        participant.role !==
-        "callee"
+        callee.role !==
+        CALL_PARTICIPANT_ROLE.CALLEE
     ) {
         throw new CallDomainError(
             "INVALID_CALL_PARTICIPANT",
@@ -106,7 +121,7 @@ export async function acceptCall(
     }
 
     if (
-        participant.state !==
+        callee.state !==
         CALL_PARTICIPANT_STATE.RINGING
     ) {
         throw new CallDomainError(
@@ -115,20 +130,64 @@ export async function acceptCall(
         );
     }
 
-    const updatedParticipant =
+    /*
+     * The callee has accepted the call.
+     */
+    const updatedCallee =
         await updateParticipantState(
             callId,
             userId,
             CALL_PARTICIPANT_STATE.ACCEPTED,
         );
 
-    if (!updatedParticipant) {
+    if (!updatedCallee) {
         throw new CallDomainError(
             "CALL_PARTICIPANT_UPDATE_FAILED",
             "Failed to accept the call.",
         );
     }
 
+    /*
+     * IMPORTANT:
+     *
+     * The caller must also become ACCEPTED.
+     *
+     * Otherwise the caller's OFFER is rejected
+     * by the WebRTC signaling authorization.
+     */
+    const caller =
+        result.participants.find(
+            (participant) =>
+                participant.role ===
+                CALL_PARTICIPANT_ROLE.CALLER,
+        );
+
+    if (caller) {
+        if (
+            caller.state ===
+                CALL_PARTICIPANT_STATE.INVITED ||
+            caller.state ===
+                CALL_PARTICIPANT_STATE.RINGING
+        ) {
+            const updatedCaller =
+                await updateParticipantState(
+                    callId,
+                    caller.userId,
+                    CALL_PARTICIPANT_STATE.ACCEPTED,
+                );
+
+            if (!updatedCaller) {
+                throw new CallDomainError(
+                    "CALL_PARTICIPANT_UPDATE_FAILED",
+                    "Failed to prepare the caller for WebRTC.",
+                );
+            }
+        }
+    }
+
+    /*
+     * Persist the call lifecycle transition.
+     */
     const updatedCall =
         await updateCallState(
             callId,

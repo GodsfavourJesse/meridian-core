@@ -634,14 +634,11 @@ async function handleClientMessage(
      * WebRTC signaling
      * ----------------------------------------------------------------------
      *
-     * Intentionally not implemented in this slice.
+     * WebRTC signaling is authenticated and authorized
+     * by handleWebRTCSignaling() before any event is
+     * forwarded to the other participant.
      *
-     * The event parser already understands the
-     * protocol, but signaling must perform
-     * call authorization before forwarding
-     * anything to another user.
-     *
-     * That logic is Phase 6E.
+     * Media itself never passes through this server.
      */
 
     if (
